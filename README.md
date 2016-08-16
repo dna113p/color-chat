@@ -7,4 +7,4 @@ npm install
 npm start
 ```
 
-based off of (https://github.com/facebookincubator/create-react-app)[https://github.com/facebookincubator/create-react-app]
+based off of https://github.com/facebookincubator/create-react-app
