@@ -1,0 +1,17 @@
+.composer-container {
+  margin: 0 auto;
+  width: 100%;
+  max-width: 1000px;
+  display: flex;
+}
+
+.composer {
+  margin: 1em;
+  background-color: #fbfbfb;
+  height: 100%;
+  width: 100%;
+  border: none;
+  outline: none;
+  font-size: 1.25em;
+  resize: none;
+}

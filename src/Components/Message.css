@@ -1,0 +1,26 @@
+.Message {
+  width: 90%;
+  min-height: 50px;
+  margin: .5em;
+  padding: .5em;
+  background-color: #f9f7f9;
+
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-shrink: 0;
+}
+.Message p {
+  flex-grow: 1;
+  margin: 1em 3em;
+}
+
+.icon {
+  min-width: 50px;
+  width: 50px;
+  height: 50px;
+}
+
+.timestamp {
+  color: rgba(0,0,0,0.35);
+}

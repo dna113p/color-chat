@@ -1,0 +1,24 @@
+.container {
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  width: 100%;
+  max-width: 1000px;
+}
+
+.messages {
+  background-color: #EEE;
+
+  height: 90vh;
+
+  display: flex;
+  flex-direction: column-reverse;
+  width: 100%;
+  overflow: auto;
+}
+
+.text-area {
+  width: 100vw;
+  background-color: #fbfbfb;
+  height: 10vh;
+}
