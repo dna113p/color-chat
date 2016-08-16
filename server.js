@@ -1,6 +1,7 @@
 var express     = require('express');        // call express
 var app         = express();                 // define our app using express
 var bodyParser  = require('body-parser');
+var open = require('open');
 
 //Uncomment for webpack dev server middleware
 //==========================================================
@@ -118,6 +119,7 @@ var server = app.listen(port);
 // Timeout connections after an hour
 server.timeout = 60 * 60 * 1000;
 console.log('Listening on port: ' + port);
+open('http://localhost:8080');
 
 
 //Helper functions for writing and broadcasting messages
