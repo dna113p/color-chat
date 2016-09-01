@@ -6,3 +6,5 @@ cd color-chat
 npm install
 npm start
 ```
+
+build system is based off of https://github.com/facebookincubator/create-react-app
