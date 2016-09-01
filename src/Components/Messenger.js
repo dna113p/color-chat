@@ -1,7 +1,8 @@
 import React, { Component } from 'react';
+import io from 'socket.io-client';
+
 import Message from './Message';
 import Composer from './Composer';
-import HttpHelper from '../HttpHelper';
 import './Messenger.css';
 
 class Messenger extends Component {
@@ -10,39 +11,33 @@ class Messenger extends Component {
     super(props);
 
     this.state = {
-      messages: []
+      messages: [],
     };
-    this.updateMessages = this.updateMessages.bind(this);
+
   }
 
-  updateMessages (data) {
-    this.setState({messages: data});
+  componentWillMount() {
+    this.socket = io();
+
+    this.socket.on('connect', () => {
+      this.socket.emit('request color', this.props.myColor);
+    });
+
+    this.socket.on('new message', (data) => {
+      let newMessages = this.state.messages.slice();
+      newMessages.push(data);
+      this.setState( {messages: newMessages });
+    });
+
+    this.socket.on('socket in use', () => {
+      this.props.setColor(null);
+    });
+
   }
 
   componentWillUnmount() {
-    this.evtSource.close();
   }
 
-  componentDidMount() {
-    //When component mounts, register an server sent event listener with the server.
-    this.evtSource = new EventSource('/api/stream');
-    let updateMessages = this.updateMessages;
-    this.evtSource.onmessage = function(event) {
-      updateMessages(JSON.parse(event.data));
-    }
-
-    //Attempt to register selected color with the server
-    let myColor = this.props.myColor;
-    let request = HttpHelper.post('/api/registerColor/');
-    request.send(JSON.stringify({color: myColor}));
-    let setColor = this.props.setColor;
-    request.onreadystatechange = function() {
-      if (request.readyState === 4 && request.status === 400){
-        alert('Color already taken');
-        setColor(null);
-      }
-    };
-  }
 
   render() {
 
@@ -60,7 +55,7 @@ class Messenger extends Component {
           </div>
         </div>
         <div className="text-area">
-          <Composer color={this.props.myColor}/>
+          <Composer socket={this.socket} color={this.props.myColor}/>
         </div>
       </div>
     );

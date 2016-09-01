@@ -1,5 +1,4 @@
 import React, { Component } from 'react';
-import HttpHelper from '../HttpHelper';
 import './EntryForm.css'
 import colors from '../colors';
 
@@ -47,7 +46,15 @@ class EntryForm extends Component {
   }
 
   componentDidMount() {
-    HttpHelper.get('/api/getColors', this.handleOnline);
+    let handleOnline = this.handleOnline;
+    let request = new XMLHttpRequest();
+    request.onreadystatechange = function(){
+      if (request.readyState === 4 && request.status === 200){
+        handleOnline(request.responseText);
+      }
+    };
+    request.open('GET', '/api/getColors');
+    request.send();
   }
 
   render() {

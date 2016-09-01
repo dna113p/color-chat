@@ -1,7 +1,10 @@
-var express     = require('express');        // call express
-var app         = express();                 // define our app using express
+var express = require('express');
+var app = express();
+var server = require('http').createServer(app);
+
 var bodyParser  = require('body-parser');
-var open = require('open');
+
+var port = process.env.PORT || 8080;
 
 //Uncomment for webpack dev server middleware
 //==========================================================
@@ -26,114 +29,72 @@ var open = require('open');
 app.use(bodyParser.urlencoded({ extended: true }));
 app.use(bodyParser.json());
 
-var port = process.env.PORT || 8080;
-
-var router = express.Router();
 
 // Pull static assets from build folder
 app.use(express.static('build'));
-
-// Middleware for server sent events. To send Messages.
-app.use(function(req, res, next) {
-  res.sseSetup = function() {
-    res.writeHead(200, {
-      'Content-Type': 'text/event-stream',
-      'Cache-Control': 'no-cache',
-      'Connection': 'keep-alive'
-    })
-  }
-  res.sseSend = function(data) {
-    res.write("data: " + JSON.stringify(data) + "\n\n");
-  };
-  next();
-
-});
-
-
-//Global objects instead of DB
-var MESSAGES = [];
-var CONNECTIONS = [];
-var COLORS = [];
-
-//Registering Routes below.
-//=============================
-//
-
-router.route('/message').post(function(req, res) {
-  //Write messages and brodacst them
-  writeMessage(req.body.message.text, req.body.message.color);
-  console.log('"' + req.body.message.text + '" from ' + req.body.message.color);
-  broadcastMessages(CONNECTIONS);
-  res.end('success');
-});
-
-
-//Register a new color at this route.
-router.route('/registerColor').post(function(req,res) {
-
-  //Add new color to app
-  if(COLORS.indexOf(req.body.color) == -1){
-    //Broadcast a conenct message
-    var i = COLORS.length;
-    COLORS.push(req.body.color);
-    var text = req.body.color + " has connected.";
-    console.log( text );
-    writeMessage(text, req.body.color);
-    broadcastMessages(CONNECTIONS);
-
-    //Keep this connection alive so we can disconnect users
-    res.writeHead(200,{'Connection': 'keep-alive'});
-    res.on("close", close);
-    res.on("end", close);
-
-    function close() {
-      if (i > -1) COLORS.splice( i, 1);
-      writeMessage( req.body.color+" has disconnected.", req.body.color);
-      console.log( req.body.color+" has disconnected." );
-      broadcastMessages(CONNECTIONS);
-    };
-  }
-  //Return an error if we already have requested color
-  else {
-    res.sendStatus(400);
-  }
-
-});
-
-router.route('/getColors').get(function(req,res) {
-  res.json({"data": JSON.stringify(COLORS)});
-});
-
-
-router.route('/stream').get(function(req,res) {
-  res.sseSetup();
-  res.sseSend(MESSAGES);
-  CONNECTIONS.push(res);
-});
-
-
-app.use('/api', router);
-
-// Start Serer
 var server = app.listen(port);
-// Timeout connections after an hour
-server.timeout = 60 * 60 * 1000;
 console.log('Listening on port: ' + port);
-open('http://localhost:8080');
+var io = require('socket.io')(server);
 
+var colors = []
 
-//Helper functions for writing and broadcasting messages
-function broadcastMessages(connections) {
-  connections.forEach(function(connection) {
-    connection.sseSend(MESSAGES)
+io.on('connection', function (socket) {
+  var hasColor = false;
+  var index = null;
+
+  //Client sends a new message
+  socket.on('new message', function (data) {
+    // we tell the client to execute 'new message'
+    io.emit('new message', {
+      color: socket.color,
+      text: data,
+      timestamp: Date.now()
+    });
   });
-}
 
-function writeMessage(text,color) {
-  var message = {
-    color: color,
-    text: text,
-    timestamp: Date.now()
-  };
-  MESSAGES.push(message);
-}
+  //Client sends a color request
+  socket.on('request color', function (color) {
+    if (hasColor) return;
+    if (colors.indexOf(color) == -1){
+
+      //Store the color in the socket
+      socket.color = color;
+      index = colors.length;
+      colors.push(color);
+      hasColor = true;
+      socket.emit('connected', {
+        color: color
+      });
+
+      //Broadcast connected user message
+      io.emit('new message', {
+        color: socket.color,
+        text: socket.color + ' has connected',
+        timestamp: Date.now()
+      });
+    }
+    else {
+      socket.emit('socket in use');
+    }
+  });
+
+  //Handle a user disconnect
+  socket.on('disconnect', function () {
+    if (hasColor) {
+      colors.splice( index, 1);
+
+      //Broadcast disconnect message
+      io.emit('new message', {
+        color: socket.color,
+        text: socket.color + ' has disconnected',
+        timestamp: Date.now()
+      });
+    }
+  });
+});
+
+app.get('/api/getColors', function(req, res, next){
+  res.json({"data": JSON.stringify(colors)});
+});
+
+
